@@ -8,5 +8,8 @@
             "runningStatusMessage": "Compiling ${fileBasename}...",
             "finishStatusMessage": "${fileBasename} compiled!"
         },
+    ],
+    "cSpell.words": [
+        "autoencoder"
     ]
 }
