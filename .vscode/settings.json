@@ -10,6 +10,7 @@
         },
     ],
     "cSpell.words": [
-        "autoencoder"
+        "autoencoder",
+        "logits"
     ]
 }
