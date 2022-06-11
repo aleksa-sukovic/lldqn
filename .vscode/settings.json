@@ -11,8 +11,13 @@
     ],
     "cSpell.words": [
         "autoencoder",
+        "cuda",
         "LLDQN",
         "logits",
+        "logspace",
+        "Offpolicy",
+        "probs",
+        "Softmax",
         "tianshou"
     ],
     "python.formatting.provider": "black"
