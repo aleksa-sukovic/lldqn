@@ -1,0 +1,2 @@
+class InvariantRepresentation:
+    pass

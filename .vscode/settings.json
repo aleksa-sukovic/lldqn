@@ -11,6 +11,8 @@
     ],
     "cSpell.words": [
         "autoencoder",
-        "logits"
+        "LLDQN",
+        "logits",
+        "tianshou"
     ]
 }
