@@ -76,14 +76,10 @@ class Task:
 
     def load(self) -> None:
         self.invariant_representation.load()
-        # self.behavior_policy = self.get_behavior_policy()
-        # self.policy.behavior_policy = self.behavior_policy
         # TODO: Load trained policy from disk.
 
     def compile(self) -> None:
         self.invariant_representation = self.get_invariant_representation()
-        # self.behavior_policy = self.get_behavior_policy()
-        # self.policy.behavior_policy = self.behavior_policy
 
     def get_invariant_representation(self) -> InvariantRepresentation:
         stats = self.collector_explore.collect(n_episode=30, random=True)
@@ -102,5 +98,4 @@ class Task:
         mask = logits.le(self.similarity_threshold)
         probs = logits * mask
         probs[mask] = torch.nn.Softmax(dim=0)(-logits[mask])
-        distribution = torch.distributions.Categorical(probs=probs)
-        return BehaviorPolicy(self.knowledge_base.tasks, distribution)
+        return BehaviorPolicy(self.knowledge_base.tasks, probs)
