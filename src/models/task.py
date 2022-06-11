@@ -33,13 +33,21 @@ class Task:
         env_test_count: int = 1,
     ) -> None:
         self.env = gym.make(env_name)
-        self.env_train = DummyVectorEnv([lambda: gym.make(env_name) for _ in range(env_train_count)])
-        self.env_test = DummyVectorEnv([lambda: gym.make(env_name) for _ in range(env_test_count)])
-        self.state_shape = self.env.observation_space.shape or self.env.observation_space.n
+        self.env_train = DummyVectorEnv(
+            [lambda: gym.make(env_name) for _ in range(env_train_count)]
+        )
+        self.env_test = DummyVectorEnv(
+            [lambda: gym.make(env_name) for _ in range(env_test_count)]
+        )
+        self.state_shape = (
+            self.env.observation_space.shape or self.env.observation_space.n
+        )
         self.action_shape = self.env.action_space.shape or self.env.action_space.n
         self.knowledge_base = knowledge_base
         self.policy_network = Net(self.state_shape, self.action_shape)
-        self.policy_optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=1e-3)
+        self.policy_optimizer = torch.optim.Adam(
+            self.policy_network.parameters(), lr=1e-3
+        )
         self.policy = LLDQNPolicy(
             self.policy_network,
             self.policy_optimizer,

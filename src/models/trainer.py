@@ -3,6 +3,7 @@ from tianshou.trainer import OffpolicyTrainer
 
 from models.task import Task
 
+
 class LLDQNTrainer(OffpolicyTrainer):
     task: Task
 
@@ -19,7 +20,7 @@ class LLDQNTrainer(OffpolicyTrainer):
             batch_size=64,
             train_fn=self._train_fn,
             test_fn=self._test_fn,
-            stop_fn=self._stop_fn
+            stop_fn=self._stop_fn,
         )
         self.task = task
 

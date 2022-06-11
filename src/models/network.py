@@ -2,13 +2,17 @@ import torch
 import numpy as np
 from torch import nn
 
+
 class Net(nn.Module):
     def __init__(self, state_shape, action_shape):
         super().__init__()
         self.model = nn.Sequential(
-            nn.Linear(np.prod(state_shape), 128), nn.ReLU(inplace=True),
-            nn.Linear(128, 128), nn.ReLU(inplace=True),
-            nn.Linear(128, 128), nn.ReLU(inplace=True),
+            nn.Linear(np.prod(state_shape), 128),
+            nn.ReLU(inplace=True),
+            nn.Linear(128, 128),
+            nn.ReLU(inplace=True),
+            nn.Linear(128, 128),
+            nn.ReLU(inplace=True),
             nn.Linear(128, np.prod(action_shape)),
         )
 

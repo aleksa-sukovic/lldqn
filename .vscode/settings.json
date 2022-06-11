@@ -14,5 +14,6 @@
         "LLDQN",
         "logits",
         "tianshou"
-    ]
+    ],
+    "python.formatting.provider": "black"
 }
