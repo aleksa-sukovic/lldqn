@@ -14,12 +14,15 @@ class Task:
     def __init__(
         self,
         env_name: str,
-        knowledge_base: KnowledgeBase,
         save_data_dir: str = "",
         save_model_name: str = "TaskOne-v1",
         env_train_count: int = 1,
         env_test_count: int = 1,
+        similarity_threshold: int = 0.2,
+        knowledge_base: KnowledgeBase = None,
+        pre_load: bool = False,
     ) -> None:
+        self.name = env_name
         self.env = gym.make(env_name)
         self.env_train = DummyVectorEnv(
             [lambda: gym.make(env_name) for _ in range(env_train_count)]
@@ -31,11 +34,15 @@ class Task:
             self.env.observation_space.shape or self.env.observation_space.n
         )
         self.action_shape = self.env.action_space.shape or self.env.action_space.n
-        self.knowledge_base = knowledge_base
-        self.invariant_representation = None
-        self.behavior_policy = None
         self.save_data_dir = save_data_dir
         self.save_model_name = save_model_name
+        self.knowledge_base = knowledge_base
+        self.similarity_threshold = similarity_threshold
+        self.invariant_representation = InvariantRepresentation(
+            task=self,
+            save_data_dir=self.save_data_dir,
+            save_model_name=f"{self.save_model_name}-Autoencoder",
+        )
         self.policy_network = Net(self.state_shape, self.action_shape)
         self.policy_optimizer = torch.optim.Adam(
             self.policy_network.parameters(), lr=1e-3
@@ -64,20 +71,36 @@ class Task:
             VectorReplayBuffer(2000, env_test_count),
         )
 
+        if pre_load:
+            self.load()
+
+    def load(self) -> None:
+        self.invariant_representation.load()
+        # self.behavior_policy = self.get_behavior_policy()
+        # self.policy.behavior_policy = self.behavior_policy
+        # TODO: Load trained policy from disk.
+
     def compile(self) -> None:
         self.invariant_representation = self.get_invariant_representation()
-        self.behavior_policy = self.get_behavior_policy()
-        self.policy = LLDQNPolicy(self.behavior_policy)
+        # self.behavior_policy = self.get_behavior_policy()
+        # self.policy.behavior_policy = self.behavior_policy
 
     def get_invariant_representation(self) -> InvariantRepresentation:
-        stats = self.collector_explore.collect(n_episode=25, random=True)
+        stats = self.collector_explore.collect(n_episode=30, random=True)
         batches = to_numpy(self.collector_explore.buffer)[: stats["n/st"]]
-        self.invariant_representation = InvariantRepresentation(
-            task=self,
-            save_data_dir=self.save_data_dir,
-            save_model_name=f"{self.save_model_name}-Autoencoder",
-        )
         self.invariant_representation.train(batches)
 
     def get_behavior_policy(self) -> BehaviorPolicy:
-        return None
+        logits = torch.empty(len(self.knowledge_base.tasks))
+
+        for index, task in enumerate(self.knowledge_base.tasks):
+            stats = self.collector_explore.collect(n_episode=30, random=True)
+            batches = to_numpy(self.collector_explore.buffer)[: stats["n/st"]]
+            loss = task.invariant_representation.evaluate(batches)
+            logits[index] = loss
+
+        mask = logits.le(self.similarity_threshold)
+        probs = logits * mask
+        probs[mask] = torch.nn.Softmax(dim=0)(-logits[mask])
+        distribution = torch.distributions.Categorical(probs=probs)
+        return BehaviorPolicy(self.knowledge_base.tasks, distribution)
