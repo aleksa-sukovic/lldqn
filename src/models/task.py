@@ -1,7 +1,7 @@
 import gym
 import torch
 
-from tianshou.data import Collector, VectorReplayBuffer
+from tianshou.data import Collector, VectorReplayBuffer, to_numpy
 from tianshou.env import DummyVectorEnv
 
 from policies import LLDQNPolicy, BehaviorPolicy
@@ -15,6 +15,7 @@ class Task:
     env_test: DummyVectorEnv
     collector_train: Collector
     collector_test: Collector
+    collector_explore: Collector
     policy: LLDQNPolicy
     policy_network: Net
     policy_optimizer: torch.optim.Adam
@@ -44,6 +45,7 @@ class Task:
         )
         self.action_shape = self.env.action_space.shape or self.env.action_space.n
         self.knowledge_base = knowledge_base
+        self.invariant_representation = None
         self.policy_network = Net(self.state_shape, self.action_shape)
         self.policy_optimizer = torch.optim.Adam(
             self.policy_network.parameters(), lr=1e-3
@@ -66,3 +68,18 @@ class Task:
             self.env_test,
             exploration_noise=False,
         )
+        self.collector_explore = Collector(
+            self.policy,
+            self.env_test,
+            VectorReplayBuffer(1000, env_test_count),
+        )
+
+    def get_invariant_representation(self) -> InvariantRepresentation:
+        if not getattr(self, "invariant_representation"):
+            stats = self.collector_explore.collect(
+                n_episode=10, random=True, no_grad=True
+            )
+            batches = to_numpy(self.collector_explore.buffer)[: stats["n/st"]]
+            self.invariant_representation = InvariantRepresentation(self)
+            self.invariant_representation.train(batches)
+        return self.invariant_representation
