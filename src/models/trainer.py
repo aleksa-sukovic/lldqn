@@ -1,3 +1,5 @@
+import numpy as np
+
 from typing import Dict, Union
 from tianshou.trainer import OffpolicyTrainer
 
@@ -21,8 +23,11 @@ class LLDQNTrainer(OffpolicyTrainer):
             train_fn=self._train_fn,
             test_fn=self._test_fn,
             stop_fn=self._stop_fn,
+            *args,
+            **kwargs,
         )
         self.task = task
+        self.epsilon_decay = self._decay_schedule(0.8, 0.05, 0.9, 5)
 
     def run(self) -> Dict[str, Union[float, str]]:
         return super().run()
@@ -35,6 +40,18 @@ class LLDQNTrainer(OffpolicyTrainer):
 
     def _stop_fn(self, mean_rewards):
         return mean_rewards >= self.task.env.spec.reward_threshold
+
+    def _decay_schedule(
+        self, init_value, min_value, decay_ratio, max_steps, log_start=-2, log_base=10
+    ):
+        decay_steps = int(max_steps * decay_ratio)
+        rem_steps = max_steps - decay_steps
+        values = np.logspace(log_start, 0, decay_steps, base=log_base, endpoint=True)
+        values = values[::-1]
+        values = (values - values.min()) / (values.max() - values.min())
+        values = (init_value - min_value) * values + min_value
+        values = np.pad(values, (0, rem_steps), "edge")
+        return values
 
 
 def lldqn_trainer(*args, **kwargs) -> Dict[str, Union[float, str]]:
