@@ -11,25 +11,12 @@ from models.network import Net
 
 
 class Task:
-    env_train: DummyVectorEnv
-    env_test: DummyVectorEnv
-    collector_train: Collector
-    collector_test: Collector
-    collector_explore: Collector
-    policy: LLDQNPolicy
-    policy_network: Net
-    policy_optimizer: torch.optim.Adam
-    behavior_policy: BehaviorPolicy
-    invariant_representation: InvariantRepresentation
-    knowledge_base: KnowledgeBase
-    env: gym.Env
-    state_shape: int
-    action_shape: int
-
     def __init__(
         self,
         env_name: str,
         knowledge_base: KnowledgeBase,
+        save_data_dir: str = "",
+        save_model_name: str = "TaskOne-v1",
         env_train_count: int = 1,
         env_test_count: int = 1,
     ) -> None:
@@ -46,6 +33,9 @@ class Task:
         self.action_shape = self.env.action_space.shape or self.env.action_space.n
         self.knowledge_base = knowledge_base
         self.invariant_representation = None
+        self.behavior_policy = None
+        self.save_data_dir = save_data_dir
+        self.save_model_name = save_model_name
         self.policy_network = Net(self.state_shape, self.action_shape)
         self.policy_optimizer = torch.optim.Adam(
             self.policy_network.parameters(), lr=1e-3
@@ -71,15 +61,17 @@ class Task:
         self.collector_explore = Collector(
             self.policy,
             self.env_test,
-            VectorReplayBuffer(1000, env_test_count),
+            VectorReplayBuffer(2000, env_test_count),
         )
 
     def get_invariant_representation(self) -> InvariantRepresentation:
         if not getattr(self, "invariant_representation"):
-            stats = self.collector_explore.collect(
-                n_episode=10, random=True, no_grad=True
-            )
+            stats = self.collector_explore.collect(n_episode=25, random=True)
             batches = to_numpy(self.collector_explore.buffer)[: stats["n/st"]]
-            self.invariant_representation = InvariantRepresentation(self)
+            self.invariant_representation = InvariantRepresentation(
+                task=self,
+                save_data_dir=self.save_data_dir,
+                save_model_name=f"{self.save_model_name}-Autoencoder",
+            )
             self.invariant_representation.train(batches)
         return self.invariant_representation

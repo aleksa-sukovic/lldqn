@@ -1,6 +1,8 @@
 import torch
 import numpy as np
+import tqdm
 
+from os.path import join
 from torch import nn
 from torch.utils.data import Dataset, TensorDataset, DataLoader
 from typing import TYPE_CHECKING, Any
@@ -40,24 +42,30 @@ class Autoencoder(nn.Module):
 
 
 class InvariantRepresentation:
-    task: "Task"
-    task_state_space: int
-    autoencoder: Autoencoder
-
-    def __init__(self, task: "Task") -> None:
-        self.task = task
-        self.task_state_space = self._get_state_space(task)
-        self.autoencoder = None
+    def __init__(
+        self, task: "Task", save_data_dir: str = "", save_model_name: str = ""
+    ) -> None:
+        self.task: "Task" = task
+        self.task_state_space: int = self._get_state_space(task)
+        self.save_data_dir = save_data_dir
+        self.save_model_name = f"{save_model_name}.pt"
+        self.autoencoder: Autoencoder = None
+        self.train_epochs = 150
+        self.train_batch = 64
+        self.learning_rate = 1e-3
+        self.weight_decay = 1e-5
 
     def train(self, batches: np.ndarray[Any, Batch]) -> None:
         dataset = self._get_dataset(batches)
-        dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+        dataloader = DataLoader(dataset, batch_size=self.train_batch, shuffle=True)
         model = Autoencoder(self.task_state_space).cuda()
-        num_epochs = 200
         criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
+        optimizer = torch.optim.Adam(
+            model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay
+        )
+        progress = tqdm.tqdm(total=self.train_epochs)
 
-        for epoch in range(num_epochs):
+        for _ in range(self.train_epochs):
             for data in dataloader:
                 batch = data[0]
                 batch = torch.autograd.Variable(batch).cuda()
@@ -68,9 +76,11 @@ class InvariantRepresentation:
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-            print(
-                "Epoch [{}/{}], loss:{:.4f}".format(epoch + 1, num_epochs, loss.item())
-            )
+
+            progress.update()
+            progress.set_postfix(loss="{:.4f}".format(loss.item()))
+
+        torch.save(model.state_dict(), join(self.save_data_dir, self.save_model_name))
 
     def evaluate(self, batches: np.ndarray[Any, Batch]) -> int:
         # TODO: Ensure batches are zero-padded to match this particular task.
