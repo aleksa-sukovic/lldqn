@@ -30,6 +30,7 @@ class LLDQNTrainer(OffpolicyTrainer):
         self.epsilon_decay = self._decay_schedule(0.8, 0.05, 0.9, 5)
 
     def run(self) -> Dict[str, Union[float, str]]:
+        self.task.compile()
         return super().run()
 
     def _train_fn(self, epoch: int, env_step: int):

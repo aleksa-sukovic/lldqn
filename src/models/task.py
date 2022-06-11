@@ -64,14 +64,20 @@ class Task:
             VectorReplayBuffer(2000, env_test_count),
         )
 
+    def compile(self) -> None:
+        self.invariant_representation = self.get_invariant_representation()
+        self.behavior_policy = self.get_behavior_policy()
+        self.policy = LLDQNPolicy(self.behavior_policy)
+
     def get_invariant_representation(self) -> InvariantRepresentation:
-        if not getattr(self, "invariant_representation"):
-            stats = self.collector_explore.collect(n_episode=25, random=True)
-            batches = to_numpy(self.collector_explore.buffer)[: stats["n/st"]]
-            self.invariant_representation = InvariantRepresentation(
-                task=self,
-                save_data_dir=self.save_data_dir,
-                save_model_name=f"{self.save_model_name}-Autoencoder",
-            )
-            self.invariant_representation.train(batches)
-        return self.invariant_representation
+        stats = self.collector_explore.collect(n_episode=25, random=True)
+        batches = to_numpy(self.collector_explore.buffer)[: stats["n/st"]]
+        self.invariant_representation = InvariantRepresentation(
+            task=self,
+            save_data_dir=self.save_data_dir,
+            save_model_name=f"{self.save_model_name}-Autoencoder",
+        )
+        self.invariant_representation.train(batches)
+
+    def get_behavior_policy(self) -> BehaviorPolicy:
+        return None
