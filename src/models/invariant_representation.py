@@ -49,15 +49,12 @@ class InvariantRepresentation:
         self.save_data_dir = save_data_dir
         self.save_model_name = f"{save_model_name}.pt"
         self.autoencoder: Autoencoder = None
-        self.state_tuple_dim = (
-            10  # Large enough value to fit the state-space tuple of all tasks.
-        )
         self.train_epochs = 250
         self.train_batch = 64
         self.test_batch = 64
         self.learning_rate = 1e-3
         self.weight_decay = 1e-5
-        self.task_state_space: int = self._get_state_space(task)
+        self.task_state_space = self._get_state_space(task)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def load(self):
@@ -125,10 +122,9 @@ class InvariantRepresentation:
             result[index] = tuple
         return TensorDataset(torch.Tensor(result).to(self.device))
 
-    def _get_state_space(self, _: "Task") -> int:
+    def _get_state_space(self, task: "Task") -> int:
         # TODO: Properly handle differently shaped tasks. Also, handle
         #       variable-length state shape. Since I have hand-picked
         #       a list of tasks, I know upfront what is the maximum
         #       number of state features.
-        # state_space = task.state_shape[0] + 1 + 1 + task.state_shape[0]
-        return self.state_tuple_dim + 1 + 1 + self.state_tuple_dim
+        return task.state_shape[0] + 1 + 1 + task.state_shape[0]

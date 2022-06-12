@@ -1,3 +1,4 @@
+from typing import List, Type
 import gym
 import torch
 
@@ -14,6 +15,7 @@ class Task:
     def __init__(
         self,
         env_name: str,
+        wrappers: List[Type[gym.ObservationWrapper]] = [],
         save_data_dir: str = "",
         save_model_name: str = "TaskOne-v1",
         env_train_count: int = 1,
@@ -24,6 +26,7 @@ class Task:
     ) -> None:
         self.name = env_name
         self.env = gym.make(env_name)
+        self.wrappers = wrappers
         self.env_train = DummyVectorEnv(
             [lambda: gym.make(env_name) for _ in range(env_train_count)]
         )
@@ -70,6 +73,9 @@ class Task:
             self.env_test,
             VectorReplayBuffer(2000, env_test_count),
         )
+
+        for wrapper in wrappers:
+            self.env = wrapper(self.env)
 
         if pre_load:
             self.load()
