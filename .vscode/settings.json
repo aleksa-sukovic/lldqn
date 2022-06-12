@@ -18,6 +18,7 @@
         "Offpolicy",
         "probs",
         "Softmax",
+        "tensorboard",
         "tianshou",
         "wandb"
     ],
