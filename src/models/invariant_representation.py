@@ -1,6 +1,7 @@
-import torch
-import numpy as np
 import tqdm
+import torch
+import wandb
+import numpy as np
 
 from os.path import join
 from torch import nn
@@ -55,7 +56,7 @@ class InvariantRepresentation:
         self.learning_rate = 1e-3
         self.weight_decay = 1e-5
         self.task_state_space = self._get_state_space(task)
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def load(self):
         self.autoencoder = Autoencoder(self.task_state_space).to(self.device)
@@ -75,6 +76,13 @@ class InvariantRepresentation:
 
         progress = tqdm.tqdm(total=self.train_epochs)
         progress.write(f"Training autoencoder for '{self.task.name}'")
+        wandb.config.update({
+            "epochs": self.train_epochs,
+            "batch_size": self.train_batch,
+            "optimizer": "Adam",
+            "learning_rate": self.learning_rate,
+            "weight_decay": self.weight_decay,
+        })
 
         for _ in range(self.train_epochs):
             for data in dataloader:
@@ -90,8 +98,10 @@ class InvariantRepresentation:
 
             progress.update()
             progress.set_postfix(loss="{:.4f}".format(loss.item()))
+            wandb.log({"loss": loss.item()})
 
         torch.save(model.state_dict(), join(self.save_data_dir, self.save_model_name))
+        wandb.save(join(self.save_data_dir, self.save_model_name))
 
     def evaluate(self, batches: np.ndarray[Any, Batch]) -> int:
         dataset = self._get_dataset(batches)

@@ -1,7 +1,8 @@
-from typing import List, Type
 import gym
+import wandb
 import torch
 
+from typing import List, Type
 from tianshou.data import Collector, VectorReplayBuffer, to_numpy
 from tianshou.env import DummyVectorEnv
 
@@ -85,6 +86,7 @@ class Task:
         self.invariant_representation = self.get_invariant_representation()
 
     def get_invariant_representation(self) -> InvariantRepresentation:
+        wandb.config.update({"exploration_episodes": 30})
         stats = self.collector_explore.collect(n_episode=30, random=True)
         batches = to_numpy(self.collector_explore.buffer)[: stats["n/st"]]
         self.invariant_representation.train(batches)
