@@ -83,14 +83,14 @@ class DQNTrainer(OffpolicyTrainer):
         self.task = task
         self.epsilon_decay = self._decay_schedule(0.9, 0.00, 0.9, self.max_epoch)
         wandb.config.update({
-            "max_epoch": 20,
-            "step_per_epoch": 10000,
-            "step_per_collect": 10,
-            "update_per_step": 0.3,
-            "episode_per_test": 100,
-            "batch_size": 64,
-            "decay_init": 0.9,
-            "decay_min": 0.0,
+            "train/max_epoch": 20,
+            "train/step_per_epoch": 10000,
+            "train/step_per_collect": 10,
+            "train/update_per_step": 0.3,
+            "train/episode_per_test": 100,
+            "train/batch_size": 64,
+            "train/decay_init": 0.9,
+            "train/decay_min": 0.0,
         })
 
     def _save_best_fn(self, policy: BasePolicy):

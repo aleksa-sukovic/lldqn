@@ -2,9 +2,10 @@ import gym
 import wandb
 import torch
 
+from os.path import join
 from typing import List, Type
 from tianshou.data import Collector, VectorReplayBuffer, to_numpy
-from tianshou.policy import DQNPolicy
+from tianshou.policy import DQNPolicy, BasePolicy
 from tianshou.env import DummyVectorEnv
 
 from policies import LLDQNPolicy, BehaviorPolicy
@@ -68,18 +69,18 @@ class Task:
             target_update_freq=320,
         )
         self.collector_train = Collector(
-            self.policy_baseline if use_baseline else self.policy,
+            self.get_policy(),
             self.env_train,
             VectorReplayBuffer(20000, env_train_count),
             exploration_noise=True,
         )
         self.collector_test = Collector(
-            self.policy_baseline if use_baseline else self.policy,
+            self.get_policy(),
             self.env_test,
             exploration_noise=False,
         )
         self.collector_explore = Collector(
-            self.policy_baseline if use_baseline else self.policy,
+            self.get_policy(),
             self.env_test,
             VectorReplayBuffer(2000, env_test_count),
         )
@@ -89,10 +90,16 @@ class Task:
 
     def load(self) -> None:
         self.invariant_representation.load()
-        # TODO: Load trained policy from disk.
+        path = join(self.save_data_dir, self.save_model_name)
+        policy = self.get_policy()
+        policy.load_state_dict(torch.load(path))
+        policy.eval()
 
     def compile(self) -> None:
         self.invariant_representation = self.get_invariant_representation()
+
+    def get_policy(self) -> BasePolicy:
+        return self.policy_baseline if self.use_baseline else self.policy
 
     def get_invariant_representation(self) -> InvariantRepresentation:
         wandb.config.update({"exploration_episodes": 30})
