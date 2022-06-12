@@ -5,3 +5,6 @@ dist/*
 .DS_Store
 __pycache__
 *.pt
+src/data/**
+!src/data/**/
+!.gitkeep
