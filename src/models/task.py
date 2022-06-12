@@ -25,13 +25,13 @@ class Task:
         pre_load: bool = False,
     ) -> None:
         self.name = env_name
-        self.env = gym.make(env_name)
         self.wrappers = wrappers
+        self.env = self._make_env(env_name)
         self.env_train = DummyVectorEnv(
-            [lambda: gym.make(env_name) for _ in range(env_train_count)]
+            [lambda: self._make_env(env_name) for _ in range(env_train_count)]
         )
         self.env_test = DummyVectorEnv(
-            [lambda: gym.make(env_name) for _ in range(env_test_count)]
+            [lambda: self._make_env(env_name) for _ in range(env_test_count)]
         )
         self.state_shape = (
             self.env.observation_space.shape or self.env.observation_space.n
@@ -74,9 +74,6 @@ class Task:
             VectorReplayBuffer(2000, env_test_count),
         )
 
-        for wrapper in wrappers:
-            self.env = wrapper(self.env)
-
         if pre_load:
             self.load()
 
@@ -105,3 +102,9 @@ class Task:
         probs = logits * mask
         probs[mask] = torch.nn.Softmax(dim=0)(-logits[mask])
         return BehaviorPolicy(self.knowledge_base.tasks, probs)
+
+    def _make_env(self, env_name: str) -> gym.Env:
+        env = gym.make(env_name)
+        for wrapper in self.wrappers:
+            env = wrapper(env)
+        return env
