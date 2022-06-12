@@ -4,6 +4,7 @@ import torch
 
 from typing import List, Type
 from tianshou.data import Collector, VectorReplayBuffer, to_numpy
+from tianshou.policy import DQNPolicy
 from tianshou.env import DummyVectorEnv
 
 from policies import LLDQNPolicy, BehaviorPolicy
@@ -18,12 +19,12 @@ class Task:
         env_name: str,
         wrappers: List[Type[gym.ObservationWrapper]] = [],
         save_data_dir: str = "",
-        save_model_name: str = "TaskOne-v1",
         env_train_count: int = 1,
         env_test_count: int = 1,
         similarity_threshold: int = 0.2,
         knowledge_base: KnowledgeBase = None,
         pre_load: bool = False,
+        use_baseline: bool = False,
     ) -> None:
         self.name = env_name
         self.wrappers = wrappers
@@ -39,13 +40,14 @@ class Task:
         )
         self.action_shape = self.env.action_space.shape or self.env.action_space.n
         self.save_data_dir = save_data_dir
-        self.save_model_name = save_model_name
+        self.save_model_name = f"{self.name}-Policy.pt"
         self.knowledge_base = knowledge_base
+        self.use_baseline = use_baseline
         self.similarity_threshold = similarity_threshold
         self.invariant_representation = InvariantRepresentation(
             task=self,
             save_data_dir=self.save_data_dir,
-            save_model_name=f"{self.save_model_name}-Autoencoder",
+            save_model_name=f"{self.name}-Autoencoder",
         )
         self.policy_network = Net(self.state_shape, self.action_shape)
         self.policy_optimizer = torch.optim.Adam(
@@ -58,19 +60,26 @@ class Task:
             estimation_step=3,
             target_update_freq=320,
         )
+        self.policy_baseline = DQNPolicy(
+            self.policy_network,
+            self.policy_optimizer,
+            discount_factor=0.9,
+            estimation_step=3,
+            target_update_freq=320,
+        )
         self.collector_train = Collector(
-            self.policy,
+            self.policy_baseline if use_baseline else self.policy,
             self.env_train,
             VectorReplayBuffer(20000, env_train_count),
             exploration_noise=True,
         )
         self.collector_test = Collector(
-            self.policy,
+            self.policy_baseline if use_baseline else self.policy,
             self.env_test,
             exploration_noise=False,
         )
         self.collector_explore = Collector(
-            self.policy,
+            self.policy_baseline if use_baseline else self.policy,
             self.env_test,
             VectorReplayBuffer(2000, env_test_count),
         )

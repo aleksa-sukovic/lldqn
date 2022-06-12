@@ -22,31 +22,26 @@ TASKS = [
         env_name="Acrobot-v1",
         wrappers=[AugmentObservationSpaceWrapper],
         save_data_dir="./src/data/models",
-        save_model_name="Acrobot-v1",
     ),
     Task(
         env_name="MountainCarContinuous-v0",
         wrappers=[AugmentObservationSpaceWrapper],
         save_data_dir="./src/data/models",
-        save_model_name="MountainCarContinuous-v0",
     ),
     Task(
         env_name="MountainCar-v0",
         wrappers=[AugmentObservationSpaceWrapper],
         save_data_dir="./src/data/models",
-        save_model_name="MountainCar-v0",
     ),
     Task(
         env_name="Pendulum-v1",
         wrappers=[AugmentObservationSpaceWrapper],
         save_data_dir="./src/data/models",
-        save_model_name="Pendulum-v1",
     ),
     Task(
         env_name="CartPole-v1",
         wrappers=[AugmentObservationSpaceWrapper],
         save_data_dir="./src/data/models",
-        save_model_name="CartPole-v1",
     )
 ]
 
