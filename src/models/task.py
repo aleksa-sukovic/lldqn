@@ -5,7 +5,7 @@ import torch
 from os.path import join
 from typing import List, Type
 from tianshou.data import Collector, VectorReplayBuffer, to_numpy
-from tianshou.policy import DQNPolicy, BasePolicy
+from tianshou.policy import DQNPolicy
 from tianshou.env import DummyVectorEnv
 
 from policies import LLDQNPolicy, BehaviorPolicy
@@ -24,10 +24,11 @@ class Task:
         env_test_count: int = 1,
         similarity_threshold: int = 0.2,
         knowledge_base: KnowledgeBase = None,
-        pre_load: bool = False,
         use_baseline: bool = False,
+        version: int = 1,
     ) -> None:
         self.name = env_name
+        self.version = version
         self.wrappers = wrappers
         self.env = self._make_env(env_name)
         self.env_train = DummyVectorEnv(
@@ -41,7 +42,7 @@ class Task:
         )
         self.action_shape = self.env.action_space.shape or self.env.action_space.n
         self.save_data_dir = save_data_dir
-        self.save_model_name = f"{self.name}-Policy.pt"
+        self.save_model_name = f"{self.name}-Policy-{self.version}.pt"
         self.knowledge_base = knowledge_base
         self.use_baseline = use_baseline
         self.similarity_threshold = similarity_threshold
@@ -54,52 +55,47 @@ class Task:
         self.policy_optimizer = torch.optim.Adam(
             self.policy_network.parameters(), lr=1e-3
         )
-        self.policy = LLDQNPolicy(
-            self.policy_network,
-            self.policy_optimizer,
-            discount_factor=0.9,
-            estimation_step=3,
-            target_update_freq=320,
-        )
-        self.policy_baseline = DQNPolicy(
-            self.policy_network,
-            self.policy_optimizer,
-            discount_factor=0.9,
-            estimation_step=3,
-            target_update_freq=320,
-        )
+        if use_baseline:
+            self.policy = DQNPolicy(
+                self.policy_network,
+                self.policy_optimizer,
+                discount_factor=0.9,
+                estimation_step=3,
+                target_update_freq=320,
+            )
+        else:
+            self.policy = LLDQNPolicy(
+                self.policy_network,
+                self.policy_optimizer,
+                discount_factor=0.9,
+                estimation_step=3,
+                target_update_freq=320,
+            )
         self.collector_train = Collector(
-            self.get_policy(),
+            self.policy,
             self.env_train,
             VectorReplayBuffer(20000, env_train_count),
             exploration_noise=True,
         )
         self.collector_test = Collector(
-            self.get_policy(),
+            self.policy,
             self.env_test,
             exploration_noise=False,
         )
         self.collector_explore = Collector(
-            self.get_policy(),
+            self.policy,
             self.env_test,
             VectorReplayBuffer(2000, env_test_count),
         )
 
-        if pre_load:
-            self.load()
-
     def load(self) -> None:
         self.invariant_representation.load()
         path = join(self.save_data_dir, self.save_model_name)
-        policy = self.get_policy()
-        policy.load_state_dict(torch.load(path))
-        policy.eval()
+        self.policy.load_state_dict(torch.load(path))
+        self.policy.eval()
 
     def compile(self) -> None:
         self.invariant_representation = self.get_invariant_representation()
-
-    def get_policy(self) -> BasePolicy:
-        return self.policy_baseline if self.use_baseline else self.policy
 
     def get_invariant_representation(self) -> InvariantRepresentation:
         wandb.config.update({"exploration_episodes": 30})

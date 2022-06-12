@@ -1,7 +1,7 @@
 import numpy as np
 
 from gym.spaces import Box
-from gym import ObservationWrapper
+from gym import ObservationWrapper, ActionWrapper
 
 
 MAX_STATE_SPACE_DIM = 10
@@ -18,3 +18,10 @@ class AugmentObservationSpaceWrapper(ObservationWrapper):
     def observation(self, observation):
         padding = (0, MAX_STATE_SPACE_DIM - len(observation))
         return np.pad(observation, pad_width=padding, mode="constant")
+
+
+class TestWrapper(ActionWrapper):
+    def action(self, act):
+        if not isinstance(act, np.ndarray):
+            act = np.array([act])
+        return act

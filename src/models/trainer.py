@@ -64,14 +64,14 @@ class DQNTrainer(OffpolicyTrainer):
 
     def __init__(self, task: Task, *args, **kwargs):
         super().__init__(
-            task.policy_baseline,
+            task.policy,
             task.collector_train,
             task.collector_test,
-            max_epoch=20,
+            max_epoch=15,
             step_per_epoch=10000,
-            step_per_collect=10,
+            step_per_collect=256,
             update_per_step=0.3,
-            episode_per_test=100,
+            episode_per_test=50,
             batch_size=64,
             save_best_fn=self._save_best_fn,
             train_fn=self._train_fn,
@@ -104,7 +104,10 @@ class DQNTrainer(OffpolicyTrainer):
         self.policy.set_eps(0.05)
 
     def _stop_fn(self, mean_rewards):
-        return mean_rewards >= self.task.env.spec.reward_threshold
+        if self.task.env.spec.reward_threshold:
+            return mean_rewards >= self.task.env.spec.reward_threshold
+        else:
+            return False
 
     def _decay_schedule(
         self, init_value, min_value, decay_ratio, max_steps, log_start=-2, log_base=10
