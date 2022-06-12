@@ -18,7 +18,8 @@
         "Offpolicy",
         "probs",
         "Softmax",
-        "tianshou"
+        "tianshou",
+        "wandb"
     ],
     "python.formatting.provider": "black"
 }
