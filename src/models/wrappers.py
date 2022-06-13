@@ -34,7 +34,7 @@ class StackObservation(ObservationWrapper):
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
-        self.frames.append(observation.pixels)
+        self.frames.append(observation)
         return self.observation(None), reward, done, info
 
     def reset(self, **kwargs):

@@ -18,7 +18,6 @@ class Net(nn.Module):
     def forward(self, obs, state=None, info={}):
         if not isinstance(obs, torch.Tensor):
             obs = torch.tensor(obs, dtype=torch.float)
-            obs = obs.permute(0, 3, 1, 2)
 
         obs = F.relu(self.conv1(obs))
         obs = F.relu(self.conv2(obs))
