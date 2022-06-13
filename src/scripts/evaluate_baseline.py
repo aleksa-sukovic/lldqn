@@ -10,8 +10,7 @@ import numpy as np
 if os.path.abspath(os.path.join('./src')) not in sys.path:
     sys.path.append(os.path.abspath(os.path.join('./src')))
 
-from models import Task, AugmentObservationSpaceWrapper
-from models.wrappers import TestWrapper
+from models import Task
 
 
 # 2. Define configuration variables. In addition, define
@@ -43,7 +42,7 @@ TASKS = [
     ),
     # Task(
     #     env_name="Pendulum-v1",
-    #     wrappers=[AugmentObservationSpaceWrapper, TestWrapper],
+    #     wrappers=[AugmentObservationSpaceWrapper],
     #     save_data_dir="./src/data/models",
     #     use_baseline=True,
     #     version=3,

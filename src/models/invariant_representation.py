@@ -132,9 +132,10 @@ class InvariantRepresentation:
             result[index] = tuple
         return TensorDataset(torch.Tensor(result).to(self.device))
 
-    def _get_state_space(self, task: "Task") -> int:
+    def _get_state_space(self, _: "Task") -> int:
         # TODO: Properly handle differently shaped tasks. Also, handle
         #       variable-length state shape. Since I have hand-picked
         #       a list of tasks, I know upfront what is the maximum
         #       number of state features.
-        return task.state_shape[0] + 1 + 1 + task.state_shape[0]
+        return 10
+

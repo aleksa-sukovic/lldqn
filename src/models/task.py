@@ -3,12 +3,11 @@ import wandb
 import torch
 
 from os.path import join
-from typing import List, Type
+from typing import Any, Dict, List, Type, Tuple
 from tianshou.data import Collector, VectorReplayBuffer, to_numpy
-from tianshou.policy import DQNPolicy
 from tianshou.env import DummyVectorEnv
 
-from policies import LLDQNPolicy, BehaviorPolicy
+from policies import LLDQNPolicy, BehaviorPolicy, BaselinePolicy
 from models.invariant_representation import InvariantRepresentation
 from models.knowledge_base import KnowledgeBase
 from models.network import Net
@@ -18,7 +17,7 @@ class Task:
     def __init__(
         self,
         env_name: str,
-        wrappers: List[Type[gym.ObservationWrapper]] = [],
+        wrappers: List[Tuple[Type[gym.ObservationWrapper], Dict[str, Any]]] = [],
         save_data_dir: str = "",
         env_train_count: int = 1,
         env_test_count: int = 1,
@@ -37,9 +36,6 @@ class Task:
         self.env_test = DummyVectorEnv(
             [lambda: self._make_env(env_name) for _ in range(env_test_count)]
         )
-        self.state_shape = (
-            self.env.observation_space.shape or self.env.observation_space.n
-        )
         self.action_shape = self.env.action_space.shape or self.env.action_space.n
         self.save_data_dir = save_data_dir
         self.save_model_name = f"{self.name}-Policy-{self.version}.pt"
@@ -51,12 +47,12 @@ class Task:
             save_data_dir=self.save_data_dir,
             save_model_name=f"{self.name}-Autoencoder",
         )
-        self.policy_network = Net(self.state_shape, self.action_shape)
-        self.policy_optimizer = torch.optim.Adam(
+        self.policy_network = Net(4, self.action_shape)
+        self.policy_optimizer = torch.optim.SGD(
             self.policy_network.parameters(), lr=1e-3
         )
         if use_baseline:
-            self.policy = DQNPolicy(
+            self.policy = BaselinePolicy(
                 self.policy_network,
                 self.policy_optimizer,
                 discount_factor=0.9,
@@ -120,5 +116,5 @@ class Task:
     def _make_env(self, env_name: str) -> gym.Env:
         env = gym.make(env_name)
         for wrapper in self.wrappers:
-            env = wrapper(env)
+            env = wrapper[0](env, **wrapper[1])
         return env

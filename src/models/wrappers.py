@@ -1,27 +1,52 @@
-import numpy as np
+import cv2
 
-from gym.spaces import Box
-from gym import ObservationWrapper, ActionWrapper
-
-
-MAX_STATE_SPACE_DIM = 10
+from collections import deque
+from gym import Env, ObservationWrapper
+from gym.wrappers.frame_stack import LazyFrames
 
 
-class AugmentObservationSpaceWrapper(ObservationWrapper):
-    def __init__(self, env):
+class PreprocessObservation(ObservationWrapper):
+    def __init__(self, env: Env):
         super().__init__(env)
-        high = self.observation_space.high
-        high = np.pad(high, pad_width=(0, MAX_STATE_SPACE_DIM - len(high)), mode="constant")
-        low = -high
-        self.observation_space = Box(low=low, high=high, dtype=np.float32)
+        self.screen_size: int = 84
 
     def observation(self, observation):
-        padding = (0, MAX_STATE_SPACE_DIM - len(observation))
-        return np.pad(observation, pad_width=padding, mode="constant")
+        size = (self.screen_size, self.screen_size)
+
+        pixels = observation["pixels"]
+        pixels = cv2.resize(pixels, size, interpolation=cv2.INTER_AREA)
+        pixels = cv2.cvtColor(pixels, cv2.COLOR_RGB2GRAY)
+        pixels = pixels / 255.0
+
+        return pixels
 
 
-class TestWrapper(ActionWrapper):
-    def action(self, act):
-        if not isinstance(act, np.ndarray):
-            act = np.array([act])
-        return act
+class StackObservation(ObservationWrapper):
+    def __init__(self, env: Env, num_stack: int = 4, lz4_compress: bool = False):
+        super().__init__(env)
+        self.num_stack = num_stack
+        self.lz4_compress = lz4_compress
+        self.frames = deque(maxlen=num_stack)
+
+    def observation(self, observation):
+        assert len(self.frames) == self.num_stack, (len(self.frames), self.num_stack)
+        return LazyFrames(list(self.frames), self.lz4_compress)
+
+    def step(self, action):
+        observation, reward, done, info = self.env.step(action)
+        self.frames.append(observation.pixels)
+        return self.observation(None), reward, done, info
+
+    def reset(self, **kwargs):
+        if kwargs.get("return_info", False):
+            obs, info = self.env.reset(**kwargs)
+        else:
+            obs = self.env.reset(**kwargs)
+            info = None  # Unused
+
+        [self.frames.append(obs) for _ in range(self.num_stack)]
+
+        if kwargs.get("return_info", False):
+            return self.observation(None), info
+        else:
+            return self.observation(None)
