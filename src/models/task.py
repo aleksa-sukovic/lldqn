@@ -85,7 +85,7 @@ class Task:
         )
 
     def load(self) -> None:
-        self.invariant_representation.load()
+        # self.invariant_representation.load()
         path = join(self.save_data_dir, self.save_model_name)
         self.policy.load_state_dict(torch.load(path))
         self.policy.eval()
