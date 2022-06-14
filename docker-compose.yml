@@ -8,3 +8,6 @@ services:
             dockerfile: Dockerfile
         ports:
             - 8888:8888
+        volumes:
+            - .:/home/app
+        command: tail -f /dev/null

@@ -40,5 +40,12 @@ COPY requirements.txt ${HOME}/
 RUN pip install -r ${HOME}/requirements.txt
 RUN rm ${HOME}/requirements.txt
 
+RUN apt-get install --no-install-recommends -y \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    libgl1
+
+WORKDIR ${HOME}
 # Set command in Gradient CMS panel:
 # jupyter notebook --allow-root --ip=0.0.0.0 --no-browser --NotebookApp.trust_xheaders=True --NotebookApp.disable_check_xsrf=False --NotebookApp.allow_remote_access=True --NotebookApp.allow_origin='*'
