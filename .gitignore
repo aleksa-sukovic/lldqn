@@ -6,5 +6,3 @@ dist/*
 __pycache__
 *.pt
 src/data/**
-!src/data/**/
-!.gitkeep
