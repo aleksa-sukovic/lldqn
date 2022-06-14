@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/pytorch:22.05-py3
+FROM python:3.9
 
 LABEL maintainer="Aleksa Sukovic" \
     project="LLDQN"
@@ -8,11 +8,30 @@ LABEL maintainer="Aleksa Sukovic" \
 #     - PYTHONUNBUFFERED: Prevents Python from buffering stdout and stderr.
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+ENV DEBIAN_FRONTEND noninteractive
 ENV HOME=/home/app
 
 # System configuration and dependencies.
 RUN apt-get update && apt-get install --no-install-recommends -y \
+    gcc \
+    make \
+    libnuma-dev \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    wget \
     curl \
+    llvm \
+    libncursesw5-dev \
+    xz-utils \
+    tk-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libffi-dev \
+    liblzma-dev \
     vim;
 RUN python -m ensurepip --upgrade
 
@@ -21,4 +40,5 @@ COPY requirements.txt ${HOME}/
 RUN pip install -r ${HOME}/requirements.txt
 RUN rm ${HOME}/requirements.txt
 
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+# Set command in Gradient CMS panel:
+# jupyter notebook --allow-root --ip=0.0.0.0 --no-browser --NotebookApp.trust_xheaders=True --NotebookApp.disable_check_xsrf=False --NotebookApp.allow_remote_access=True --NotebookApp.allow_origin='*'
