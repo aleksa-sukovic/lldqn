@@ -32,6 +32,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libxmlsec1-dev \
     libffi-dev \
     liblzma-dev \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    libgl1 \
     vim;
 RUN python -m ensurepip --upgrade
 
@@ -39,12 +43,6 @@ RUN python -m ensurepip --upgrade
 COPY requirements.txt ${HOME}/
 RUN pip install -r ${HOME}/requirements.txt
 RUN rm ${HOME}/requirements.txt
-
-RUN apt-get install --no-install-recommends -y \
-    ffmpeg \
-    libsm6 \
-    libxext6 \
-    libgl1
 
 WORKDIR ${HOME}
 # Set command in Gradient CMS panel:
