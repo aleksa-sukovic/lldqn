@@ -26,6 +26,7 @@ class Task:
         use_baseline: bool = False,
         version: int = 1,
     ) -> None:
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.name = env_name
         self.version = version
         self.wrappers = wrappers
@@ -67,6 +68,7 @@ class Task:
                 estimation_step=3,
                 target_update_freq=320,
             )
+        self.policy.to(self.device)
         self.collector_train = Collector(
             self.policy,
             self.env_train,
