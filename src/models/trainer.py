@@ -67,7 +67,7 @@ class DQNTrainer(OffpolicyTrainer):
             task.policy,
             task.collector_train,
             task.collector_test,
-            max_epoch=15,
+            max_epoch=30,
             step_per_epoch=10000,
             step_per_collect=256,
             update_per_step=0.3,

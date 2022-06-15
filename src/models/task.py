@@ -1,6 +1,7 @@
 import gym
 import wandb
 import torch
+import numpy as np
 
 from os.path import join
 from typing import Any, Dict, List, Type, Tuple
@@ -22,6 +23,7 @@ class Task:
         env_train_count: int = 1,
         env_test_count: int = 1,
         similarity_threshold: int = 0.2,
+        num_stack: int = 4,
         knowledge_base: KnowledgeBase = None,
         use_baseline: bool = False,
         version: int = 1,
@@ -37,7 +39,8 @@ class Task:
         self.env_test = DummyVectorEnv(
             [lambda: self._make_env(env_name) for _ in range(env_test_count)]
         )
-        self.action_shape = self.env.action_space.shape or self.env.action_space.n
+        self.action_shape = np.prod(self.env.action_space.shape) if self.env.action_space.shape else self.env.action_space.n
+        self.num_stack = num_stack
         self.save_data_dir = save_data_dir
         self.save_model_name = f"{self.name}-Policy-{self.version}.pt"
         self.knowledge_base = knowledge_base
@@ -48,7 +51,7 @@ class Task:
             save_data_dir=self.save_data_dir,
             save_model_name=f"{self.name}-Autoencoder",
         )
-        self.policy_network = Net(4, self.action_shape)
+        self.policy_network = Net(self.num_stack, self.action_shape)
         self.policy_optimizer = torch.optim.SGD(
             self.policy_network.parameters(), lr=1e-3
         )
