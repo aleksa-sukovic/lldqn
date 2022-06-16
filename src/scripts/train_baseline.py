@@ -2,6 +2,7 @@ import os
 import sys
 import wandb
 
+import gym_anytrading
 from gym.wrappers.pixel_observation import PixelObservationWrapper
 from tianshou.utils import WandbLogger
 from torch.utils.tensorboard import SummaryWriter
@@ -16,6 +17,14 @@ if os.path.abspath(os.path.join('./src')) not in sys.path:
 from models import Task
 from models.trainer import DQNTrainer
 from models.wrappers import PreprocessObservation, StackObservation
+from models.network import TradingNetwork
+
+
+df = gym_anytrading.datasets.STOCKS_GOOGL.copy()
+window_size = 10
+start_index = window_size
+end_index = len(df)
+
 
 # 2. Define configuration variables. In addition, define
 #    static data, such as the list of tasks.
@@ -24,15 +33,29 @@ WANDB_LOG_DIR = "./src/data"
 WANDB_TENSORBOARD = "./src/data/tensorboard"
 TASKS = [
     dict(
-        env_name="CartPole-v1",
+        env_name="Stocks-v0",
+        env_model=TradingNetwork,
+        env_args=dict(
+            df=df,
+            window_size=window_size,
+            frame_bound=(start_index, end_index)
+        ),
         save_data_dir="./src/data/models",
         use_baseline=True,
         wrappers=[
-            (PixelObservationWrapper, {"pixels_only": False}),
-            (PreprocessObservation, {}),
-            (StackObservation, {}),
+            #
         ],
     ),
+    # dict(
+    #     env_name="CartPole-v1",
+    #     save_data_dir="./src/data/models",
+    #     use_baseline=True,
+    #     wrappers=[
+    #         (PixelObservationWrapper, {"pixels_only": False}),
+    #         (PreprocessObservation, {}),
+    #         (StackObservation, {}),
+    #     ],
+    # ),
     # dict(
     #     env_name="Pendulum-v1",
     #     wrappers=[AugmentObservationSpaceWrapper],
