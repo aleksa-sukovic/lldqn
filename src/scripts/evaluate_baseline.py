@@ -12,8 +12,7 @@ from gym.wrappers.pixel_observation import PixelObservationWrapper
 if os.path.abspath(os.path.join('./src')) not in sys.path:
     sys.path.append(os.path.abspath(os.path.join('./src')))
 
-from models import Task
-from models.wrappers import PreprocessObservation, StackObservation
+from models import Task, ControlNetwork
 
 
 # 2. Define configuration variables. In addition, define
@@ -24,63 +23,31 @@ WANDB_TENSORBOARD = "./src/data/tensorboard"
 WANDB_GROUP="baseline"
 WANDB_JOB_TYPE="evaluation"
 TASKS = [
-    # Task(
-    #     env_name="Acrobot-v1",
-    #     wrappers=[AugmentObservationSpaceWrapper],
-    #     save_data_dir="./src/data/models",
-    #     save_model_name="Acrobot-v1",
-    # ),
-    # Task(
-    #     env_name="MountainCarContinuous-v0",
-    #     wrappers=[AugmentObservationSpaceWrapper],
-    #     save_data_dir="./src/data/models",
-    #     save_model_name="MountainCarContinuous-v0",
-    # ),
-    # Task(
-    #     env_name="MountainCar-v0",
-    #     wrappers=[],
-    #     save_data_dir="./src/data/models",
-    #     use_baseline=True,
-    #     version=1,
-    # ),
-    # Task(
-    #     env_name="Pendulum-v1",
-    #     wrappers=[AugmentObservationSpaceWrapper],
-    #     save_data_dir="./src/data/models",
-    #     use_baseline=True,
-    #     version=3,
-    # ),
-    dict(
-        env_name="CartPole-v1",
+    Task(
+        env_name="Acrobot-v1",
+        env_model=ControlNetwork,
         save_data_dir="./src/data/models",
         use_baseline=True,
-        version=1,
-        wrappers=[
-            (PixelObservationWrapper, {"pixels_only": False}),
-            (PreprocessObservation, {}),
-            (StackObservation, {}),
-        ],
     ),
 ]
 
 # 4. Train each task in a sequence.
-for task_data in TASKS:
+for task in TASKS:
     wandb.init(
         project=WANDB_PROJECT,
         dir=WANDB_LOG_DIR,
-        group=task_data["env_name"],
+        group=task.name,
         job_type="Policy-Evaluate",
-        name=task_data["env_name"],
+        name=task.save_model_name,
         sync_tensorboard=True,
         monitor_gym=True,
+        reinit=True,
         config={
             "test/episodes": 20,
             "test/noise": False,
         }
     )
 
-
-    task  = Task(**task_data)
     task.load()
     result = task.collector_test.collect(n_episode=5, render = 1 / 35)
 

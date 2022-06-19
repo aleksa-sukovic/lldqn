@@ -42,8 +42,8 @@ class Task:
         self.env_test = DummyVectorEnv(
             [lambda: self._make_env(env_name) for _ in range(env_test_count)]
         )
-        self.action_shape = np.prod(self.env.action_space.shape) if self.env.action_space.shape else self.env.action_space.n
-        self.state_shape = np.prod(self.env.observation_space.shape) if self.env.observation_space.shape else self.env.observation_space.n
+        self.action_shape = self.env.action_space.shape or self.env.action_space.n
+        self.state_shape = self.env.observation_space.shape or self.env.observation_space.n
         self.num_stack = num_stack
         self.save_data_dir = save_data_dir
         self.save_model_name = f"{self.name}-Policy-{self.version}.pt"

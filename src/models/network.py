@@ -7,9 +7,9 @@ from torch import nn
 from models.task import Task
 
 
-class TradingNetwork(nn.Module):
+class ControlNetwork(nn.Module):
     def __init__(self, task: Task) -> None:
-        super(TradingNetwork, self).__init__()
+        super(ControlNetwork, self).__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = nn.Sequential(
             nn.Linear(np.prod(task.state_shape), 128),

@@ -14,16 +14,8 @@ from torch.utils.tensorboard import SummaryWriter
 if os.path.abspath(os.path.join('./src')) not in sys.path:
     sys.path.append(os.path.abspath(os.path.join('./src')))
 
-from models import Task
+from models import Task, DQNTrainer, ControlNetwork
 from models.trainer import DQNTrainer
-from models.wrappers import PreprocessObservation, StackObservation
-from models.network import TradingNetwork
-
-
-df = gym_anytrading.datasets.STOCKS_GOOGL.copy()
-window_size = 10
-start_index = window_size
-end_index = len(df)
 
 
 # 2. Define configuration variables. In addition, define
@@ -32,61 +24,18 @@ WANDB_PROJECT = "lldqn"
 WANDB_LOG_DIR = "./src/data"
 WANDB_TENSORBOARD = "./src/data/tensorboard"
 TASKS = [
-    dict(
-        env_name="Stocks-v0",
-        env_model=TradingNetwork,
-        env_args=dict(
-            df=df,
-            window_size=window_size,
-            frame_bound=(start_index, end_index)
-        ),
+    Task(
+        env_name="Acrobot-v1",
+        env_model=ControlNetwork,
         save_data_dir="./src/data/models",
         use_baseline=True,
-        wrappers=[
-            #
-        ],
     ),
-    # dict(
-    #     env_name="CartPole-v1",
-    #     save_data_dir="./src/data/models",
-    #     use_baseline=True,
-    #     wrappers=[
-    #         (PixelObservationWrapper, {"pixels_only": False}),
-    #         (PreprocessObservation, {}),
-    #         (StackObservation, {}),
-    #     ],
-    # ),
-    # dict(
-    #     env_name="Pendulum-v1",
-    #     wrappers=[AugmentObservationSpaceWrapper],
-    #     save_data_dir="./src/data/models",
-    #     use_baseline=True,
-    # ),
-    # dict(
-    #     env_name="Acrobot-v1",
-    #     wrappers=[AugmentObservationSpaceWrapper],
-    #     save_data_dir="./src/data/models",
-    #     use_baseline=True,
-    # ),
-    # dict(
-    #     env_name="MountainCar-v0",
-    #     # wrappers=[AugmentObservationSpaceWrapper],
-    #     wrappers=[],
-    #     save_data_dir="./src/data/models",
-    #     use_baseline=True,
-    # ),
-    # dict(
-    #     env_name="MountainCarContinuous-v0",
-    #     wrappers=[AugmentObservationSpaceWrapper],
-    #     save_data_dir="./src/data/models",
-    #     use_baseline=True,
-    # ),
 ]
 
 # 4. Train each task in a sequence.
-for task_data in TASKS:
+for task in TASKS:
     for repeat in range(1):
-        task = Task(**task_data, version=repeat + 1)
+        task.version = repeat + 1
 
         wandb.init(
             project=WANDB_PROJECT,
