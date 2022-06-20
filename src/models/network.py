@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import torch.nn.functional as F
 
 from torch import nn
 
@@ -11,14 +10,19 @@ class ControlNetwork(nn.Module):
     def __init__(self, task: Task) -> None:
         super(ControlNetwork, self).__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.task = task
+        self.init(task.code_dim, np.prod(task.action_shape))
+        self.to(self.device)
+
+    def init(self, input_dim: int, output_dim: int):
         self.model = nn.Sequential(
-            nn.Linear(np.prod(task.state_shape), 128),
+            nn.Linear(input_dim, 128),
             nn.ReLU(),
             nn.Linear(128, 128),
             nn.ReLU(),
             nn.Linear(128, 128),
             nn.ReLU(),
-            nn.Linear(128, np.prod(task.action_shape)),
+            nn.Linear(128, output_dim),
         )
 
     def forward(self, obs, state=None, info={}):

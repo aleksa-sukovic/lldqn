@@ -1,0 +1,78 @@
+import os
+import sys
+import wandb
+import torch
+import numpy as np
+
+from torch.utils.data import Dataset, TensorDataset, DataLoader
+from tianshou.data import to_numpy
+
+# 1. Ensures modules are loaded. This assumes script is run
+#    from the root of the repository. Example:
+#    python src/scripts/train_invariant_representation.py
+if os.path.abspath(os.path.join('./src')) not in sys.path:
+    sys.path.append(os.path.abspath(os.path.join('./src')))
+
+from models import Task, ControlNetwork, Autoencoder
+
+
+# 2. Define configuration variables. In addition, define
+#    static data, such as the list of tasks.
+CODE_DIM = 5
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+TRAIN_BATCH = 64
+TRAIN_EPOCHS = 250
+TRAIN_LEARNING_RATE = 1e-3
+TRAIN_WEIGHT_DECAY = 1e-5
+TRAIN_EXPLORATION_EPISODES = 50
+WANDB_PROJECT = "lldqn"
+WANDB_LOG_DIR = "./src/data"
+WANDB_GROUP="Observation Autoencoder"
+WANDB_JOB_TYPE="training"
+TASKS = [
+    dict(
+        env_name="Acrobot-v1",
+        env_model=ControlNetwork,
+        save_data_dir="./src/data/models",
+    ),
+    dict(
+        env_name="CartPole-v1",
+        env_model=ControlNetwork,
+        save_data_dir="./src/data/models",
+    ),
+]
+
+# 3. Define helper functions.
+def get_observation_dataset(task: Task) -> Dataset:
+    stats = task.collector_explore.collect(n_episode=TRAIN_EXPLORATION_EPISODES, random=True)
+    batches = to_numpy(task.collector_explore.buffer)[: stats["n/st"]]
+    result = torch.empty((batches.shape[0], np.prod(task.state_shape)))
+    for (index, batch) in enumerate(batches):
+        result[index] = torch.tensor(batch.obs)
+    return TensorDataset(result.to(DEVICE))
+
+def train_observation_representation(task: Task):
+    dataset = get_observation_dataset(task)
+    dataloader = DataLoader(dataset, batch_size=TRAIN_BATCH, shuffle=True)
+    encoder = Autoencoder(
+        input_dim=np.prod(task.state_shape),
+        code_dim=CODE_DIM,
+        save_data_dir=task.save_data_dir,
+        save_model_name=f"{task.name}-Observation-Autoencoder.pt"
+    )
+    encoder.train_encoder(dataloader, TRAIN_EPOCHS, TRAIN_LEARNING_RATE, TRAIN_WEIGHT_DECAY)
+
+# 4. Train invariant representations for each defined task.
+for task_data in TASKS:
+    task = Task(**task_data)
+
+    wandb.init(
+        project=WANDB_PROJECT,
+        dir=WANDB_LOG_DIR,
+        group=WANDB_GROUP,
+        job_type=WANDB_JOB_TYPE,
+        reinit=True,
+        name=task.name,
+    )
+
+    train_observation_representation(task)

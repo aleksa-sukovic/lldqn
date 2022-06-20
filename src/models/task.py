@@ -10,7 +10,7 @@ from tianshou.data import Collector, VectorReplayBuffer, to_numpy
 from tianshou.env import DummyVectorEnv
 
 from policies import LLDQNPolicy, BehaviorPolicy, BaselinePolicy
-from models.invariant_representation import InvariantRepresentation
+from models.autoencoder import Autoencoder
 from models.knowledge_base import KnowledgeBase
 
 
@@ -25,7 +25,7 @@ class Task:
         env_train_count: int = 1,
         env_test_count: int = 1,
         similarity_threshold: int = 0.2,
-        num_stack: int = 4,
+        code_dim: int = 5,
         knowledge_base: KnowledgeBase = None,
         use_baseline: bool = False,
         version: int = 1,
@@ -44,18 +44,19 @@ class Task:
         )
         self.action_shape = self.env.action_space.shape or self.env.action_space.n
         self.state_shape = self.env.observation_space.shape or self.env.observation_space.n
-        self.num_stack = num_stack
         self.save_data_dir = save_data_dir
         self.save_model_name = f"{self.name}-Policy-{self.version}.pt"
         self.knowledge_base = knowledge_base
         self.use_baseline = use_baseline
         self.similarity_threshold = similarity_threshold
-        self.invariant_representation = InvariantRepresentation(
-            task=self,
-            save_data_dir=self.save_data_dir,
-            save_model_name=f"{self.name}-Autoencoder",
-        )
+        self.code_dim = code_dim
         self.policy_network = env_model(self)
+        self.observation_encoder = Autoencoder(
+            input_dim=np.prod(self.state_shape),
+            code_dim=code_dim,
+            save_data_dir=self.save_data_dir,
+            save_model_name=f"{self.name}-Observation-Autoencoder.pt",
+        )
         self.policy_optimizer = torch.optim.SGD(self.policy_network.parameters(), lr=1e-3)
         if use_baseline:
             self.policy = BaselinePolicy(
@@ -92,19 +93,8 @@ class Task:
         )
 
     def load(self) -> None:
-        # self.invariant_representation.load()
-        path = join(self.save_data_dir, self.save_model_name)
-        self.policy.load_state_dict(torch.load(path))
-        self.policy.eval()
-
-    def compile(self) -> None:
-        self.invariant_representation = self.get_invariant_representation()
-
-    def get_invariant_representation(self) -> InvariantRepresentation:
-        wandb.config.update({"exploration_episodes": 30})
-        stats = self.collector_explore.collect(n_episode=30, random=True)
-        batches = to_numpy(self.collector_explore.buffer)[: stats["n/st"]]
-        self.invariant_representation.train(batches)
+        self.observation_encoder.load()
+        self.observation_encoder.to(self.device)
 
     def get_behavior_policy(self) -> BehaviorPolicy:
         logits = torch.empty(len(self.knowledge_base.tasks))
@@ -123,5 +113,5 @@ class Task:
     def _make_env(self, env_name: str) -> gym.Env:
         env = gym.make(env_name, **self.env_args)
         for wrapper in self.wrappers:
-            env = wrapper[0](env, **wrapper[1])
+            env = wrapper[0](env, **wrapper[1], task=self)
         return env

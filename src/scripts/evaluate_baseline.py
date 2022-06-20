@@ -13,6 +13,7 @@ if os.path.abspath(os.path.join('./src')) not in sys.path:
     sys.path.append(os.path.abspath(os.path.join('./src')))
 
 from models import Task, ControlNetwork
+from models.wrappers import EncodeObservation
 
 
 # 2. Define configuration variables. In addition, define
@@ -28,6 +29,7 @@ TASKS = [
         env_model=ControlNetwork,
         save_data_dir="./src/data/models",
         use_baseline=True,
+        wrappers=[(EncodeObservation, dict())]
     ),
 ]
 

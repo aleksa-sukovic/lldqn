@@ -14,6 +14,7 @@ if os.path.abspath(os.path.join('./src')) not in sys.path:
 
 from models import Task, ControlNetwork
 from models.trainer import DQNTrainer
+from models.wrappers import EncodeObservation
 
 
 # 2. Define configuration variables. In addition, define
@@ -27,6 +28,14 @@ TASKS = [
         env_model=ControlNetwork,
         save_data_dir="./src/data/models",
         use_baseline=True,
+        wrappers=[(EncodeObservation, dict())]
+    ),
+    dict(
+        env_name="CartPole-v1",
+        env_model=ControlNetwork,
+        save_data_dir="./src/data/models",
+        use_baseline=True,
+        wrappers=[(EncodeObservation, dict())]
     ),
 ]
 
@@ -51,6 +60,8 @@ for task_data in TASKS:
 
         logger = WandbLogger()
         logger.load(SummaryWriter(WANDB_TENSORBOARD))
+
+        task.load()
         trainer = DQNTrainer(task, logger=logger)
         result = trainer.run()
 
