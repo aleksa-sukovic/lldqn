@@ -2,8 +2,6 @@ import os
 import sys
 import wandb
 
-import gym_anytrading
-from gym.wrappers.pixel_observation import PixelObservationWrapper
 from tianshou.utils import WandbLogger
 from torch.utils.tensorboard import SummaryWriter
 
@@ -14,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 if os.path.abspath(os.path.join('./src')) not in sys.path:
     sys.path.append(os.path.abspath(os.path.join('./src')))
 
-from models import Task, DQNTrainer, ControlNetwork
+from models import Task, ControlNetwork
 from models.trainer import DQNTrainer
 
 
@@ -24,7 +22,7 @@ WANDB_PROJECT = "lldqn"
 WANDB_LOG_DIR = "./src/data"
 WANDB_TENSORBOARD = "./src/data/tensorboard"
 TASKS = [
-    Task(
+    dict(
         env_name="Acrobot-v1",
         env_model=ControlNetwork,
         save_data_dir="./src/data/models",
@@ -33,9 +31,9 @@ TASKS = [
 ]
 
 # 4. Train each task in a sequence.
-for task in TASKS:
-    for repeat in range(1):
-        task.version = repeat + 1
+for task_data in TASKS:
+    for repeat in range(3):
+        task = Task(**task_data, version = repeat + 1)
 
         wandb.init(
             project=WANDB_PROJECT,
@@ -47,7 +45,7 @@ for task in TASKS:
             reinit=True,
             monitor_gym=True,
             config={
-                "train/repeat_count": 1,
+                "train/repeat": repeat,
             }
         )
 

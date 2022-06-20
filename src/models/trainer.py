@@ -82,6 +82,7 @@ class DQNTrainer(OffpolicyTrainer):
         )
         self.task = task
         self.epsilon_decay = self._decay_schedule(0.9, 0.00, 0.9, self.max_epoch)
+        self.stop_fn_count = 0
         wandb.config.update({
             "train/max_epoch": 20,
             "train/step_per_epoch": 10000,
@@ -105,9 +106,10 @@ class DQNTrainer(OffpolicyTrainer):
 
     def _stop_fn(self, mean_rewards):
         if self.task.env.spec.reward_threshold:
-            return mean_rewards >= self.task.env.spec.reward_threshold
-        else:
-            return False
+            if mean_rewards >= self.task.env.spec.reward_threshold:
+                self.stop_fn_count = self.stop_fn_count + 1
+                return self.stop_fn_count >= 3
+        return False
 
     def _decay_schedule(
         self, init_value, min_value, decay_ratio, max_steps, log_start=-2, log_base=10
@@ -120,11 +122,3 @@ class DQNTrainer(OffpolicyTrainer):
         values = (init_value - min_value) * values + min_value
         values = np.pad(values, (0, rem_steps), "edge")
         return values
-
-
-def lldqn_trainer(task: Task, *args, **kwargs) -> Dict[str, Union[float, str]]:
-    return LLDQNTrainer(task, *args, **kwargs).run()
-
-
-def dqn_trainer(task: Task, *args, **kwargs) -> Dict[str, Union[float, str]]:
-    return DQNTrainer(task, *args, **kwargs).run()

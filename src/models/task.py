@@ -56,9 +56,7 @@ class Task:
             save_model_name=f"{self.name}-Autoencoder",
         )
         self.policy_network = env_model(self)
-        self.policy_optimizer = torch.optim.SGD(
-            self.policy_network.parameters(), lr=1e-3
-        )
+        self.policy_optimizer = torch.optim.SGD(self.policy_network.parameters(), lr=1e-3)
         if use_baseline:
             self.policy = BaselinePolicy(
                 self.policy_network,
