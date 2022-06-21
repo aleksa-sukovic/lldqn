@@ -4,8 +4,7 @@ import wandb
 import torch
 import numpy as np
 
-from torch.utils.data import Dataset, TensorDataset, DataLoader
-from tianshou.data import to_numpy
+from torch.utils.data import DataLoader
 
 # 1. Ensures modules are loaded. This assumes script is run
 #    from the root of the repository. Example:
@@ -14,7 +13,7 @@ if os.path.abspath(os.path.join('./src')) not in sys.path:
     sys.path.append(os.path.abspath(os.path.join('./src')))
 
 from models import Task, ControlNetwork, Autoencoder
-
+from utils import get_observation_dataset
 
 # 2. Define configuration variables. In addition, define
 #    static data, such as the list of tasks.
@@ -43,14 +42,6 @@ TASKS = [
 ]
 
 # 3. Define helper functions.
-def get_observation_dataset(task: Task) -> Dataset:
-    stats = task.collector_explore.collect(n_episode=TRAIN_EXPLORATION_EPISODES, random=True)
-    batches = to_numpy(task.collector_explore.buffer)[: stats["n/st"]]
-    result = torch.empty((batches.shape[0], np.prod(task.state_shape)))
-    for (index, batch) in enumerate(batches):
-        result[index] = torch.tensor(batch.obs)
-    return TensorDataset(result.to(DEVICE))
-
 def train_observation_representation(task: Task):
     dataset = get_observation_dataset(task)
     dataloader = DataLoader(dataset, batch_size=TRAIN_BATCH, shuffle=True)
