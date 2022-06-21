@@ -30,7 +30,7 @@ TASKS = [
         save_data_dir="./src/data/models",
         use_baseline=True,
         wrappers=[(EncodeObservation, dict())],
-        version=1,
+        version=3,
     ),
     Task(
         env_name="CartPole-v1",
@@ -38,7 +38,7 @@ TASKS = [
         save_data_dir="./src/data/models",
         use_baseline=True,
         wrappers=[(EncodeObservation, dict())],
-        version=1,
+        version=3,
     ),
 ]
 

@@ -4,7 +4,7 @@ import torch
 import numpy as np
 
 from torch import nn
-from os.path import join
+from torch.utils.data import DataLoader
 from typing import Any, Dict, List, Type, Tuple
 from tianshou.data import Collector, VectorReplayBuffer, to_numpy
 from tianshou.env import DummyVectorEnv
@@ -12,6 +12,7 @@ from tianshou.env import DummyVectorEnv
 from policies import LLDQNPolicy, BehaviorPolicy, BaselinePolicy
 from models.autoencoder import Autoencoder
 from models.knowledge_base import KnowledgeBase
+from utils import get_observation_dataset
 
 
 class Task:
@@ -57,6 +58,12 @@ class Task:
             save_data_dir=self.save_data_dir,
             save_model_name=f"{self.name}-Observation-Autoencoder.pt",
         )
+        self.action_encoder = Autoencoder(
+            input_dim=np.prod(self.state_shape),
+            code_dim=code_dim,
+            save_data_dir=self.save_data_dir,
+            save_model_name=f"{self.name}-Action-Autoencoder.pt",
+        )
         self.policy_optimizer = torch.optim.SGD(self.policy_network.parameters(), lr=1e-3)
         if use_baseline:
             self.policy = BaselinePolicy(
@@ -92,6 +99,9 @@ class Task:
             VectorReplayBuffer(2000, env_test_count),
         )
 
+        if self.knowledge_base and not use_baseline:
+            self.policy.behavior_policy = self.get_behavior_policy()
+
     def load(self) -> None:
         self.observation_encoder.load()
         self.observation_encoder.to(self.device)
@@ -100,15 +110,31 @@ class Task:
         logits = torch.empty(len(self.knowledge_base.tasks))
 
         for index, task in enumerate(self.knowledge_base.tasks):
-            stats = self.collector_explore.collect(n_episode=30, random=True)
-            batches = to_numpy(self.collector_explore.buffer)[: stats["n/st"]]
-            loss = task.invariant_representation.evaluate(batches)
+            loss = self.get_similarity_index(task)
             logits[index] = loss
 
         mask = logits.le(self.similarity_threshold)
         probs = logits * mask
         probs[mask] = torch.nn.Softmax(dim=0)(-logits[mask])
         return BehaviorPolicy(self.knowledge_base.tasks, probs)
+
+    def get_similarity_index(self, other: "Task") -> int:
+        dataset = get_observation_dataset(self, n_episode=20)
+        dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+        criterion = nn.MSELoss()
+        result = 0.0
+
+        for data in dataloader:
+            batch = data[0].to(self.device)
+            batch_encoded = self.observation_encoder.encoder(batch)
+
+            batch_decoded = other.observation_encoder.decoder(batch_encoded)
+            batch_encoded_target = other.observation_encoder.encoder(batch_decoded)
+
+            loss = criterion(batch_encoded, batch_encoded_target)
+            result += loss.item()
+
+        return result / len(dataloader)
 
     def _make_env(self, env_name: str) -> gym.Env:
         env = gym.make(env_name, **self.env_args)

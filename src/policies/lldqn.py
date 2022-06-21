@@ -21,8 +21,9 @@ class LLDQNPolicy(DQNPolicy):
         input: str = "obs",
         **kwargs: Any,
     ) -> Batch:
+        result = super().forward(batch, state, model, input, **kwargs)
         self.last_state = state
-        return super().forward(batch, state, model, input, **kwargs)
+        return result
 
     def exploration_noise(
         self, act: Union[np.ndarray, Batch], batch: Batch

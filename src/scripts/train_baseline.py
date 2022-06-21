@@ -57,6 +57,8 @@ for task_data in TASKS:
                 "train/repeat": repeat,
             }
         )
+        wandb.define_metric("train/reward", summary="mean")
+        wandb.define_metric("test/reward", summary="mean")
 
         logger = WandbLogger()
         logger.load(SummaryWriter(WANDB_TENSORBOARD))
