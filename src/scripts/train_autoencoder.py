@@ -20,12 +20,12 @@ from models import Task, ControlNetwork, Autoencoder
 #    static data, such as the list of tasks.
 CODE_DIM = 5
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-TRAIN_BATCH = 64
+TRAIN_BATCH = 128
 TRAIN_EPOCHS = 250
 TRAIN_LEARNING_RATE = 1e-3
-TRAIN_WEIGHT_DECAY = 1e-5
-TRAIN_EXPLORATION_EPISODES = 50
-WANDB_PROJECT = "lldqn"
+TRAIN_WEIGHT_DECAY = 1e-6
+TRAIN_EXPLORATION_EPISODES = 200
+WANDB_PROJECT = "lldqn-update"
 WANDB_LOG_DIR = "./src/data"
 WANDB_GROUP="Observation Autoencoder"
 WANDB_JOB_TYPE="training"

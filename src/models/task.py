@@ -64,7 +64,7 @@ class Task:
                 self.policy_optimizer,
                 discount_factor=0.9,
                 estimation_step=3,
-                target_update_freq=320,
+                target_update_freq=1024,
             )
         else:
             self.policy = LLDQNPolicy(
@@ -72,13 +72,13 @@ class Task:
                 self.policy_optimizer,
                 discount_factor=0.9,
                 estimation_step=3,
-                target_update_freq=320,
+                target_update_freq=1024,
             )
         self.policy.to(self.device)
         self.collector_train = Collector(
             self.policy,
             self.env_train,
-            VectorReplayBuffer(20000, env_train_count),
+            VectorReplayBuffer(100000, env_train_count),
             exploration_noise=True,
         )
         self.collector_test = Collector(

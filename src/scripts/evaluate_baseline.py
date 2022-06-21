@@ -29,7 +29,16 @@ TASKS = [
         env_model=ControlNetwork,
         save_data_dir="./src/data/models",
         use_baseline=True,
-        wrappers=[(EncodeObservation, dict())]
+        wrappers=[(EncodeObservation, dict())],
+        version=1,
+    ),
+    Task(
+        env_name="CartPole-v1",
+        env_model=ControlNetwork,
+        save_data_dir="./src/data/models",
+        use_baseline=True,
+        wrappers=[(EncodeObservation, dict())],
+        version=1,
     ),
 ]
 
