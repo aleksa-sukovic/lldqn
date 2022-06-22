@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 
 from typing import Dict, List, Optional, Union, Any, TYPE_CHECKING
@@ -20,6 +21,7 @@ class BehaviorPolicy(BasePolicy):
         super().__init__(*args, **kwargs)
         self.tasks = tasks
         self.distribution = Categorical(probs=probs) if probs.sum() > 0 else None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def forward(
         self,
@@ -27,10 +29,17 @@ class BehaviorPolicy(BasePolicy):
         state: Optional[Union[dict, Batch, np.ndarray]] = None,
         **kwargs: Any,
     ) -> Batch:
-        if self.distribution:
-            task_index = self.distribution.sample()
+        if not self.distribution:
+            return None
 
-            return self.tasks[task_index].policy.forward(batch, state, **kwargs)
+        task_index = self.distribution.sample()
+        result = self.tasks[task_index].policy.forward(batch, state, **kwargs)
+
+        actions = torch.zeros((len(batch), np.prod(self.tasks[task_index].action_shape)), device=self.device)
+        actions[:, result.act] = 1.0
+        result.act_encoded = self.tasks[task_index].action_encoder.encoder(actions).detach()
+
+        return result
 
     def learn(self, batch: Batch, **kwargs: Any) -> Dict[str, Any]:
         pass

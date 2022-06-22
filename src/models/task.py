@@ -4,9 +4,10 @@ import torch
 import numpy as np
 
 from torch import nn
+from os.path import exists, join
 from torch.utils.data import DataLoader
 from typing import Any, Dict, List, Type, Tuple
-from tianshou.data import Collector, VectorReplayBuffer, to_numpy
+from tianshou.data import Collector, VectorReplayBuffer
 from tianshou.env import DummyVectorEnv
 
 from policies import LLDQNPolicy, BehaviorPolicy, BaselinePolicy
@@ -23,6 +24,7 @@ class Task:
         env_args: Dict[str, Any] = {},
         wrappers: List[Tuple[Type[gym.ObservationWrapper], Dict[str, Any]]] = [],
         save_data_dir: str = "",
+        save_model_name: str = None,
         env_train_count: int = 1,
         env_test_count: int = 1,
         similarity_threshold: int = 0.2,
@@ -46,7 +48,7 @@ class Task:
         self.action_shape = self.env.action_space.shape or self.env.action_space.n
         self.state_shape = self.env.observation_space.shape or self.env.observation_space.n
         self.save_data_dir = save_data_dir
-        self.save_model_name = f"{self.name}-Policy-{self.version}.pt"
+        self.save_model_name = save_model_name or f"{self.name}-Policy-{self.version}.pt"
         self.knowledge_base = knowledge_base
         self.use_baseline = use_baseline
         self.similarity_threshold = similarity_threshold
@@ -59,7 +61,7 @@ class Task:
             save_model_name=f"{self.name}-Observation-Autoencoder.pt",
         )
         self.action_encoder = Autoencoder(
-            input_dim=np.prod(self.state_shape),
+            input_dim=np.prod(self.action_shape),
             code_dim=code_dim,
             save_data_dir=self.save_data_dir,
             save_model_name=f"{self.name}-Action-Autoencoder.pt",
@@ -101,10 +103,14 @@ class Task:
 
         if self.knowledge_base and not use_baseline:
             self.policy.behavior_policy = self.get_behavior_policy()
+            self.policy.task = self
 
-    def load(self) -> None:
+    def load(self, policy: bool = False) -> None:
         self.observation_encoder.load()
         self.observation_encoder.to(self.device)
+
+        if policy and exists(join(self.save_data_dir, self.save_model_name)):
+            self.policy.load_state_dict(torch.load(join(self.save_data_dir, self.save_model_name)))
 
     def get_behavior_policy(self) -> BehaviorPolicy:
         logits = torch.empty(len(self.knowledge_base.tasks))
@@ -126,12 +132,11 @@ class Task:
 
         for data in dataloader:
             batch = data[0].to(self.device)
-            batch_encoded = self.observation_encoder.encoder(batch)
 
-            batch_decoded = other.observation_encoder.decoder(batch_encoded)
+            batch_decoded = other.observation_encoder.decoder(batch)
             batch_encoded_target = other.observation_encoder.encoder(batch_decoded)
 
-            loss = criterion(batch_encoded, batch_encoded_target)
+            loss = criterion(batch, batch_encoded_target)
             result += loss.item()
 
         return result / len(dataloader)

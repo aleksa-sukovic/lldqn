@@ -14,7 +14,7 @@ def get_observation_dataset(task: "Task", n_episode: int = 100) -> Dataset:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     stats = task.collector_explore.collect(n_episode=n_episode, random=True)
     batches = to_numpy(task.collector_explore.buffer)[: stats["n/st"]]
-    result = torch.empty((batches.shape[0], np.prod(task.state_shape)))
+    result = torch.empty((batches.shape[0], np.prod(batches[0].obs.shape)))
     for (index, batch) in enumerate(batches):
         result[index] = torch.tensor(batch.obs)
     return TensorDataset(result.to(device))
