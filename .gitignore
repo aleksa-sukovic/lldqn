@@ -4,6 +4,6 @@ dist/*
 !.dist/.gitkeep
 .DS_Store
 __pycache__
-*.pt
-src/data/**
+src/data/wandb
+src/data/tensorboard
 wandb
