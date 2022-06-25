@@ -1,5 +1,4 @@
 import gym
-import wandb
 import torch
 import numpy as np
 
@@ -10,7 +9,7 @@ from typing import Any, Dict, List, Type, Tuple
 from tianshou.data import Collector, VectorReplayBuffer
 from tianshou.env import DummyVectorEnv
 
-from policies import LLDQNPolicy, BehaviorPolicy, BaselinePolicy
+from policies import LLDQNPolicy, BaselinePolicy
 from models.autoencoder import Autoencoder
 from models.knowledge_base import KnowledgeBase
 from utils import get_observation_dataset

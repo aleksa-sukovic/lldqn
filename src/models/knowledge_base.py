@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, List
 
+
 if TYPE_CHECKING:
     from models.task import Task
 

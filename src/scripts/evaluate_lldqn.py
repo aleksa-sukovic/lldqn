@@ -5,7 +5,7 @@ import wandb
 
 # 1. Ensures modules are loaded. This assumes script is run
 #    from the root of the repository. Example:
-#    python src/scripts/train_invariant_representation.py
+#    python src/scripts/evaluate_lldqn.py
 if os.path.abspath(os.path.join('./src')) not in sys.path:
     sys.path.append(os.path.abspath(os.path.join('./src')))
 
