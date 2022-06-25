@@ -61,7 +61,8 @@ def make_similarity_matrix(tasks: List[Task]):
 
     data_frame = pd.DataFrame(data, index = [t.name for t in TASKS], columns = [t.name for t in TASKS])
     plt.figure(figsize = (10, 7))
-    sn.heatmap(data_frame, annot=True, cmap="OrRd_r")
+    sn.set(font_scale=1.2)
+    sn.heatmap(data_frame, annot=True, cmap="OrRd_r", linewidths=.8, xticklabels=True, yticklabels=True, cbar_kws={"orientation": "horizontal", "location": "top"})
     plt.show()
 
 
