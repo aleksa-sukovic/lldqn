@@ -44,3 +44,16 @@ class LLDQNPolicy(DQNPolicy):
                     logits = logits.cpu().detach().numpy()
                     act[rand_mask] = logits.argmax(axis=1)
         return act
+
+    def init_behavior_policy(self, task: "Task") -> None:
+        logits = torch.empty(len(task.knowledge_base.tasks))
+
+        for index, task in enumerate(task.knowledge_base.tasks):
+            loss = task.get_similarity_index(task)
+            logits[index] = loss
+
+        mask = logits.le(task.similarity_threshold)
+        probs = logits * mask
+        probs[mask] = torch.nn.Softmax(dim=0)(-logits[mask])
+
+        self.behavior_policy = BehaviorPolicy(self.knowledge_base.tasks, probs)

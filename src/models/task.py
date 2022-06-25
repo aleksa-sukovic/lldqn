@@ -27,7 +27,7 @@ class Task:
         save_model_name: str = None,
         env_train_count: int = 1,
         env_test_count: int = 1,
-        similarity_threshold: int = 0.2,
+        similarity_threshold: int = 0.05,
         code_dim: int = 5,
         knowledge_base: KnowledgeBase = None,
         use_baseline: bool = False,
@@ -102,8 +102,8 @@ class Task:
         )
 
         if self.knowledge_base and not use_baseline:
-            self.policy.behavior_policy = self.get_behavior_policy()
             self.policy.task = self
+            self.policy.init_behavior_policy()
 
     def load(self, policy: bool = False) -> None:
         self.observation_encoder.load()
@@ -111,18 +111,6 @@ class Task:
 
         if policy and exists(join(self.save_data_dir, self.save_model_name)):
             self.policy.load_state_dict(torch.load(join(self.save_data_dir, self.save_model_name)))
-
-    def get_behavior_policy(self) -> BehaviorPolicy:
-        logits = torch.empty(len(self.knowledge_base.tasks))
-
-        for index, task in enumerate(self.knowledge_base.tasks):
-            loss = self.get_similarity_index(task)
-            logits[index] = loss
-
-        mask = logits.le(self.similarity_threshold)
-        probs = logits * mask
-        probs[mask] = torch.nn.Softmax(dim=0)(-logits[mask])
-        return BehaviorPolicy(self.knowledge_base.tasks, probs)
 
     def get_similarity_index(self, other: "Task") -> int:
         dataset = get_observation_dataset(self, n_episode=20)
@@ -133,10 +121,11 @@ class Task:
         for data in dataloader:
             batch = data[0].to(self.device)
 
-            batch_decoded = other.observation_encoder.decoder(batch)
+            batch_encoded = self.observation_encoder.encoder(batch)
+            batch_decoded = other.observation_encoder.decoder(batch_encoded)
             batch_encoded_target = other.observation_encoder.encoder(batch_decoded)
 
-            loss = criterion(batch, batch_encoded_target)
+            loss = criterion(batch_encoded, batch_encoded_target)
             result += loss.item()
 
         return result / len(dataloader)
