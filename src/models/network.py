@@ -28,7 +28,6 @@ class ControlNetwork(nn.Module):
     def forward(self, obs, state=None, info={}):
         if not isinstance(obs, torch.Tensor):
             obs = torch.tensor(obs, dtype=torch.float, device=self.device)
-            obs = obs.flatten(start_dim=1)
         batch = obs.shape[0]
         logits = self.model(obs.view(batch, -1))
         return logits, state
